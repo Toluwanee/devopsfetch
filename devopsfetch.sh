@@ -63,6 +63,16 @@ function display_activity() {
     journalctl --since="$start_time" --until="$end_time" -o short-iso
 }
 
+function list_nginx_configs() {
+    echo "Nginx Configurations:"
+    NGINX_CONF_DIR="/etc/nginx/sites-available"
+    NGINX_DEFAULT_CONF="/etc/nginx/nginx.conf"
+
+    grep -r -E 'server_name|listen' $NGINX_CONF_DIR $NGINX_DEFAULT_CONF | awk -F: '
+    /server_name/ {server=$2; gsub(/[ \t;]/, "", server)}
+    /listen/ {port=$2; gsub(/[ \t;]/, "", port); if (server) print server ":" port; server=""}' | sed 'N;s/\n/: /'
+}
+
 function monitor_system() {
     while true; do
         log_message "Collecting system information"
@@ -139,6 +149,14 @@ case $1 in
             display_activity "$2" "$3"
         else
             help
+        fi
+        ;;
+
+	-n| --nginx)
+        if [ $# -eq 2 ]; then
+            display_port_info $2
+        else
+            list_nginx_configs
         fi
         ;;
 
