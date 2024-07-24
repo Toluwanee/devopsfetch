@@ -63,15 +63,56 @@ function display_activity() {
     journalctl --since="$start_time" --until="$end_time" -o short-iso
 }
 
-function list_nginx_configs() {
-    echo "Nginx Configurations:"
-    NGINX_CONF_DIR="/etc/nginx/sites-available"
-    NGINX_DEFAULT_CONF="/etc/nginx/nginx.conf"
+#function list_nginx_configs() {
+#    echo "Nginx Configurations:"
+#    NGINX_CONF_DIR="/etc/nginx/sites-available"
+#    NGINX_DEFAULT_CONF="/etc/nginx/nginx.conf"
+#
+#    grep -r -E 'server_name|listen' $NGINX_CONF_DIR $NGINX_DEFAULT_CONF | awk -F: '
+#    /server_name/ {server=$2; gsub(/[ \t;]/, "", server)}
+#    /listen/ {port=$2; gsub(/[ \t;]/, "", port); if (server) print server ":" port; server=""}' | sed 'N;s/\n/: /'
+#}
 
-    grep -r -E 'server_name|listen' $NGINX_CONF_DIR $NGINX_DEFAULT_CONF | awk -F: '
-    /server_name/ {server=$2; gsub(/[ \t;]/, "", server)}
-    /listen/ {port=$2; gsub(/[ \t;]/, "", port); if (server) print server ":" port; server=""}' | sed 'N;s/\n/: /'
+
+
+# Function to display all Nginx domains and their ports
+list_domains() {
+    echo "Listing all Nginx domains and their ports:"
+    grep -E 'server_name|listen' /etc/nginx/sites-available/* | awk '
+    /server_name/ {server=$0}
+    /listen/ {
+        port=$0
+        gsub(/.*server_name\s*/, "", server)
+        gsub(/;.*/, "", server)
+        gsub(/.*listen\s*/, "", port)
+        gsub(/;.*/, "", port)
+        print "Domain:", server, "Port:", port
+    }'
 }
+
+# Function to display detailed configuration for a specific domain
+domain_info() {
+    local domain=$1
+    echo "Configuration for domain: $domain"
+    grep -E "server_name.*$domain|listen" /etc/nginx/sites-available/* -A 10 | awk '
+    /server_name/ {server=$0}
+    /listen/ {
+        port=$0
+        gsub(/.*server_name\s*/, "", server)
+        gsub(/;.*/, "", server)
+        gsub(/.*listen\s*/, "", port)
+        gsub(/;.*/, "", port)
+        if (server ~ /'$domain'/) {
+            print "Port:", port
+            system("grep -E -A 10 \"server_name.*'$domain'|listen\" /etc/nginx/sites-available/* | grep -v server_name")
+        }
+    }'
+}
+
+
+
+
+
 
 function monitor_system() {
     while true; do
@@ -153,12 +194,16 @@ case $1 in
         ;;
 
 	-n| --nginx)
-        if [ $# -eq 2 ]; then
-            display_port_info $2
-        else
-            list_nginx_configs
-        fi
-        ;;
+            DOMAIN="$2"
+            if [ -z "$DOMAIN" ]; then
+                list_domains
+            else
+                domain_info "$DOMAIN"
+            fi
+            shift # past argument
+            shift # past value
+            ;;
+
 
 	-m| --monitor)
         if [ $# -eq 1 ]; then
