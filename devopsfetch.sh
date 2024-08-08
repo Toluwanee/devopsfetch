@@ -76,40 +76,51 @@ function display_activity() {
 
 
 # Function to display all Nginx domains and their ports
-list_domains() {
-    echo "Listing all Nginx domains and their ports:"
-    grep -E 'server_name|listen' /etc/nginx/sites-available/* | awk '
-    /server_name/ {server=$0}
-    /listen/ {
-        port=$0
-        gsub(/.*server_name\s*/, "", server)
-        gsub(/;.*/, "", server)
-        gsub(/.*listen\s*/, "", port)
-        gsub(/;.*/, "", port)
-        print "Domain:", server, "Port:", port
-    }'
-}
+#list_domains() {
+#    echo "Listing all Nginx domains and their ports:"
+#    grep -E 'server_name|listen' /etc/nginx/sites-available/* | awk '
+#    /server_name/ {server=$0}
+#    /listen/ {
+#        port=$0
+#        gsub(/.*server_name\s*/, "", server)
+#        gsub(/;.*/, "", server)
+#        gsub(/.*listen\s*/, "", port)
+#        gsub(/;.*/, "", port)
+#        print "Domain:", server, "Port:", port
+#    }'
+#}
 
 # Function to display detailed configuration for a specific domain
-domain_info() {
-    local domain=$1
-    echo "Configuration for domain: $domain"
-    grep -E "server_name.*$domain|listen" /etc/nginx/sites-available/* -A 10 | awk '
-    /server_name/ {server=$0}
-    /listen/ {
-        port=$0
-        gsub(/.*server_name\s*/, "", server)
-        gsub(/;.*/, "", server)
-        gsub(/.*listen\s*/, "", port)
-        gsub(/;.*/, "", port)
-        if (server ~ /'$domain'/) {
-            print "Port:", port
-            system("grep -E -A 10 \"server_name.*'$domain'|listen\" /etc/nginx/sites-available/* | grep -v server_name")
-        }
-    }'
+#domain_info() {
+#    local domain=$1
+#    echo "Configuration for domain: $domain"
+#    grep -E "server_name.*$domain|listen" /etc/nginx/sites-available/* -A 10 | awk '
+#    /server_name/ {server=$0}
+#    /listen/ {
+#        port=$0
+#        gsub(/.*server_name\s*/, "", server)
+#        gsub(/;.*/, "", server)
+#        gsub(/.*listen\s*/, "", port)
+#        gsub(/;.*/, "", port)
+#        if (server ~ /'$domain'/) {
+#            print "Port:", port
+#            system("grep -E -A 10 \"server_name.*'$domain'|listen\" /etc/nginx/sites-available/* | grep -v server_name")
+#        }
+#    }'
+#}
+
+list_domains() {
+	echo "Details for domain(s) available:"
+    ls -1 /var/www
+    echo "ports in use by nginx: " 
+    netstat -tulnp | grep nginx
 }
 
-
+domain_info() {
+	local username=$1
+        echo "Details for user $username:"
+	cat /etc/nginx/sites-available/$username
+}
 
 
 
