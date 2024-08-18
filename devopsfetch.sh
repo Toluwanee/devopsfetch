@@ -10,7 +10,7 @@ if [ "$(id -u)" != "0" ]; then
 fi
 
 function log_message() {
-    echo "$(date): $1" >> "$LOG_FILE"
+    echo "$(date): $1" >> $LOG_FILE
 }
 
 
@@ -26,21 +26,23 @@ function display_port_info(){
 	netstat -tulnp | grep ":$port\b" | awk '{print $4 " " $1 " " $7}'
 }
 
+#display list of docker images and containers
 function display_docker_images() {
     #local port=$1
-    echo "Details for docker:"
+    echo "Details for docker images and containers:"
     docker image ls
     docker container ls
 }
 
+#display info about a specific container
 function display_docker_info() {
 	local id=$1
         echo "Details for docker process $id:"
 	#docker ps -f $id
 	docker ps -f id=$id
-
 }
 
+#
 function display_users_login() {
     #local port=$1
     echo "Details for users:"
@@ -63,83 +65,30 @@ function display_activity() {
     journalctl --since="$start_time" --until="$end_time" -o short-iso
 }
 
-#function list_nginx_configs() {
-#    echo "Nginx Configurations:"
-#    NGINX_CONF_DIR="/etc/nginx/sites-available"
-#    NGINX_DEFAULT_CONF="/etc/nginx/nginx.conf"
-#
-#    grep -r -E 'server_name|listen' $NGINX_CONF_DIR $NGINX_DEFAULT_CONF | awk -F: '
-#    /server_name/ {server=$2; gsub(/[ \t;]/, "", server)}
-#    /listen/ {port=$2; gsub(/[ \t;]/, "", port); if (server) print server ":" port; server=""}' | sed 'N;s/\n/: /'
-#}
-
-
-
-# Function to display all Nginx domains and their ports
-#list_domains() {
-#    echo "Listing all Nginx domains and their ports:"
-#    grep -E 'server_name|listen' /etc/nginx/sites-available/* | awk '
-#    /server_name/ {server=$0}
-#    /listen/ {
-#        port=$0
-#        gsub(/.*server_name\s*/, "", server)
-#        gsub(/;.*/, "", server)
-#        gsub(/.*listen\s*/, "", port)
-#        gsub(/;.*/, "", port)
-#        print "Domain:", server, "Port:", port
-#    }'
-#}
-
-# Function to display detailed configuration for a specific domain
-#domain_info() {
-#    local domain=$1
-#    echo "Configuration for domain: $domain"
-#    grep -E "server_name.*$domain|listen" /etc/nginx/sites-available/* -A 10 | awk '
-#    /server_name/ {server=$0}
-#    /listen/ {
-#        port=$0
-#        gsub(/.*server_name\s*/, "", server)
-#        gsub(/;.*/, "", server)
-#        gsub(/.*listen\s*/, "", port)
-#        gsub(/;.*/, "", port)
-#        if (server ~ /'$domain'/) {
-#            print "Port:", port
-#            system("grep -E -A 10 \"server_name.*'$domain'|listen\" /etc/nginx/sites-available/* | grep -v server_name")
-#        }
-#    }'
-#}
-
+#List domains on server, this does not mean the domain is enabled
 list_domains() {
-	echo "Details for domain(s) available:"
+	echo "Details for domain(s) on server:"
     ls -1 /var/www
     echo "ports in use by nginx: " 
     netstat -tulnp | grep nginx
 }
 
+#checks if domain is  enabled
 domain_info() {
-	local username=$1
-        echo "Details for user $username:"
-	cat /etc/nginx/sites-available/$username
+	local domain_name=$1
+        echo "Details for domain: $domain_name:"
+	cat /etc/nginx/sites-available/$domain_name
 }
-
-
-
 
 function monitor_system() {
     while true; do
         log_message "Collecting system information"
-        display_all_ports >> "$LOG_FILE"
-        display_port_info >> "$LOG_FILE"
-	display_docker_images >> "$LOG_FILE"
-	display_docker_info >> "$LOG_FILE"
-	display_users_login >> "$LOG_FILE"
-	display_user_info >> "$LOG_FILE"
-	#display_activity >> "$LOG_FILE"
-
-
-        #list_nginx_configs >> "$LOG_FILE"
-        #list_docker_images >> "$LOG_FILE"
-        #list_docker_containers >> "$LOG_FILE"
+        display_all_ports >> $LOG_FILE
+        display_port_info >> $LOG_FILE
+	display_docker_images >> $LOG_FILE
+	display_docker_info >> $LOG_FILE
+	display_users_login >> $LOG_FILE
+	display_user_info >> $LOG_FILE
         log_message "System information collected"
         sleep 3600  # Run every hour
     done
@@ -161,17 +110,25 @@ function help(){
     echo "  -u, --users           Display all active users and their last login times."
     echo "  -u <username>     Provide detailed information about a specific user."
 
+        echo "Usage: $0 [-n | --nginx] [<username>]"
+    echo "  -n, --nginx           Display all active domains."
+    echo "  -n <site name>     Provide detailed information about a specific domain."
 
 	echo "Usage: $0 [-t | --time] <start_time> <end_time>"
-    echo "  -t, time		 Display system activities within the specified time range."
+    echo "  -t, --time		 Display system activities within the specified time range."
     echo "Time format: 'YYYY-MM-DD HH:MM:SS'"
+
+        echo "Usage: $0 [-m | --monitor]"
+    echo "  -m, monitor             Begin monitoring of system activities."
+    echo "Time format: 'YYYY-MM-DD HH:MM:SS'"
+
 }
 
 
 #main
 case $1 in 
 	-p | --port)
-	#pass the port number has argument
+	#checks if the port number has argument
 	if [ $# -eq 2 ];
 	then
 	display_port_info $2
@@ -222,13 +179,6 @@ case $1 in
     monitor_system
         else
 	help
-          #display_all_ports
-          #display_port_info
-          #display_docker_images
-          #display_docker_info
-          #display_users_login
-          #display_user_info 
-          #display_activity
         fi
         ;;
 
