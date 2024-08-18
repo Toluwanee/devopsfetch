@@ -125,7 +125,7 @@ function help(){
 }
 
 
-#main
+#main  - checks for arguments and letters
 case $1 in 
 	-p | --port)
 	#checks if the port number has argument
